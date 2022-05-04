@@ -22,6 +22,10 @@
 #include <vector>
 #include <type_traits>
 
+#if USE_CUDA
+#   include <AggregateFunctions/Cuda/ICudaAggregateFunction.h>
+#endif
+
 namespace llvm
 {
     class LLVMContext;
@@ -32,6 +36,16 @@ namespace llvm
 namespace DB
 {
 struct Settings;
+
+namespace ErrorCodes
+{
+    extern const int NOT_IMPLEMENTED;
+}
+
+namespace ErrorCodes
+{
+    extern const int CUDA_UNSUPPORTED_AGGREGATE_FUNCTION;
+}
 
 class Arena;
 class ReadBuffer;
@@ -373,6 +387,16 @@ public:
     /// Description of AggregateFunction in form of name(parameters)(argument_types).
     String getDescription() const;
 
+#if USE_CUDA
+    virtual const CudaAggregateFunctionPtr  createCudaFunction() const
+    {
+        throw Exception("IAggregateFunction::createCudaFunction: aggregate function is not supported", ErrorCodes::CUDA_UNSUPPORTED_AGGREGATE_FUNCTION);
+        return nullptr;
+    }
+#endif
+
+#if USE_EMBEDDED_COMPILER
+
     /// Is function JIT compilable
     virtual bool isCompilable() const { return false; }
 
@@ -388,6 +412,7 @@ public:
 
     /// compileGetResult should generate code for getting result value from aggregate function state stored in aggregate_data_ptr
     virtual llvm::Value * compileGetResult(llvm::IRBuilderBase & /*builder*/, llvm::Value * /*aggregate_data_ptr*/) const;
+#endif
 
 protected:
     DataTypes argument_types;

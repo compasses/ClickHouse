@@ -93,6 +93,24 @@ if (OMIT_HEAVY_DEBUG_SYMBOLS)
         PROPERTIES COMPILE_FLAGS -g1)
 endif()
 
+if (ENABLE_CUDA)
+    set(dbms_cuda_headers)
+    set(dbms_cuda_sources)
+
+    add_cuda_headers_and_sources(dbms_cuda Common/Cuda)
+    add_cuda_headers_and_sources(dbms_cuda Common/Cuda/City_Hash)
+    add_cuda_headers_and_sources(dbms_cuda Common/HashTable/Cuda)
+    add_cuda_headers_and_sources(dbms_cuda Columns/Cuda)
+    add_cuda_headers_and_sources(dbms_cuda AggregateFunctions/Cuda)
+
+    add_cuda_headers_and_sources(dbms_cuda Processors/Transforms/Cuda)
+    add_cuda_headers_and_sources(dbms_cuda Processors/QueryPlan/Cuda)
+    add_cuda_headers_and_sources(dbms_cuda Interpreters/Cuda)
+
+    list (APPEND dbms_cuda_sources Interpreters/Cuda/CudaStringsAggregator.cu)
+    list (APPEND dbms_cuda_headers Interpreters/Cuda/CudaStringsAggregator.h)
+endif ()
+
 add_headers_and_sources(clickhouse_common_io Common)
 add_headers_and_sources(clickhouse_common_io Common/Crypto)
 add_headers_and_sources(clickhouse_common_io Common/JSONParsers)
@@ -362,6 +380,12 @@ endif()
 
 add_library (dbms STATIC ${dbms_headers} ${dbms_sources})
 
+if (ENABLE_CUDA)
+    add_library(dbms_cuda STATIC ${dbms_cuda_headers} ${dbms_cuda_sources})
+    target_link_libraries (dbms PRIVATE dbms_cuda)
+    target_include_directories(dbms_cuda SYSTEM PUBLIC "/usr/local/cuda-11.6/include")
+endif ()
+
 target_link_libraries (dbms PRIVATE ch_contrib::libdivide daemon)
 target_link_libraries (dbms PRIVATE ch_contrib::clickstack_resources)
 if (TARGET ch_contrib::jemalloc)
@@ -370,6 +394,9 @@ endif()
 
 target_include_directories (dbms PUBLIC "${ClickHouse_SOURCE_DIR}/src" "${ClickHouse_BINARY_DIR}/src")
 target_include_directories (clickhouse_common_io PUBLIC "${ClickHouse_SOURCE_DIR}/src" "${ClickHouse_BINARY_DIR}/src")
+if (ENABLE_CUDA)
+    target_include_directories(clickhouse_common_io SYSTEM PUBLIC "/usr/local/cuda-11.6/include")
+endif ()
 
 if (TARGET ch_contrib::llvm)
     target_link_libraries (dbms PUBLIC ch_contrib::llvm)

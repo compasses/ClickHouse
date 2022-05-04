@@ -35,6 +35,10 @@ namespace ErrorCodes
 }
 }
 
+#if USE_CUDA
+#   include <AggregateFunctions/Cuda/createAggregateFunction.h>
+#endif
+
 namespace DB
 {
 struct Settings;
@@ -529,6 +533,13 @@ public:
     {
         assert_cast<ColumnUInt64 &>(to).getData().push_back(this->data(place).set.size());
     }
+
+#if USE_CUDA
+    const CudaAggregateFunctionPtr  createCudaFunction() const override
+    {
+        return createCudaAggregateFunctionUniq();
+    }
+#endif
 };
 
 

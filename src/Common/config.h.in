@@ -85,4 +85,6 @@
 #cmakedefine01 USE_WASMEDGE
 #cmakedefine01 USE_WASMTIME
 #cmakedefine01 WITH_COVERAGE
+#cmakedefine01 USE_CUDA
+
 

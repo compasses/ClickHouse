@@ -13,6 +13,14 @@
 #include <AggregateFunctions/AggregateFunctionFactory.h>
 #include <Common/assert_cast.h>
 
+#if USE_CUDA
+#   include <AggregateFunctions/Cuda/createAggregateFunction.h>
+#endif
+
+#if USE_EMBEDDED_COMPILER
+#    include <llvm/IR/IRBuilder.h>
+#    include <DataTypes/Native.h>
+#endif
 
 namespace DB
 {
@@ -136,6 +144,13 @@ public:
 
     AggregateFunctionPtr getOwnNullAdapter(
         const AggregateFunctionPtr &, const DataTypes & types, const Array & params, const AggregateFunctionProperties & /*properties*/) const override;
+
+#if USE_CUDA
+    const CudaAggregateFunctionPtr  createCudaFunction() const override
+    {
+        return createCudaAggregateFunctionCount();
+    }
+#endif
 
 #if USE_EMBEDDED_COMPILER
 

@@ -7626,6 +7626,25 @@ Default number of tasks for parallel reading in distributed query. Tasks are spr
     DECLARE(Bool, distributed_plan_optimize_exchanges, true, R"(
 Removes unnecessary exchanges in distributed query plan. Disable it for debugging.
 )", 0) \
+ DECLARE(Bool, use_cuda_aggregation, false, R"(
+Whether to use CUDA aggregation".
+)", 0) \
+DECLARE(UInt64, cuda_device_number, 0, R"(
+CUDA device number (temporal))", 0) \
+DECLARE(UInt64, cuda_host_pinned_mem_pool_size, 2147483648, R"(
+Size of pinned memory pool for cpu/gpu transfers", 0) \
+DECLARE(UInt64, cuda_chunks_number, 2, R"(
+CUDA device number (temporal))", 0) \
+DECLARE(UInt64, cuda_hash_table_max_size, 16384, R"(
+CUDA device number (temporal))", 0) \
+DECLARE(UInt64, cuda_hash_table_strings_buffer_max_size, 262144, R"(
+CUDA device number (temporal))", 0) \
+DECLARE(UInt64, cuda_buffer_max_strings_number, 2097152, R"(
+CUDA device number (temporal))", 0) \
+DECLARE(UInt64, cuda_buffer_max_size, 134217728, R"(
+CUDA device number (temporal))", 0) \
+DECLARE(UInt64, cuda_memcpy_threads_num, 1, R"(
+CUDA device number (temporal))", 0) \
     DECLARE(String, distributed_plan_force_exchange_kind, "", R"(
 Force specified kind of Exchange operators between distributed query stages.
 

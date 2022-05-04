@@ -163,6 +163,9 @@
 #   include <azure/core/diagnostics/logger.hpp>
 #endif
 
+#if USE_CUDA
+#   include <Common/Cuda/cudaInitDevice.h>
+#endif
 
 /// A minimal file used when the server is run without installation
 constexpr unsigned char resource_embedded_xml[] =
@@ -1229,6 +1232,11 @@ try
 
         LOG_INFO(log, "Starting console logger in level {}", config().getString("logger.startup_console_log_level"));
     }
+
+#if USE_CUDA
+    LOG_INFO(log, "Initializaing CUDA context");
+    cudaInitDevice(0, 17179869184);
+#endif
 
     MainThreadStatus::getInstance();
 

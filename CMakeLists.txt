@@ -17,6 +17,38 @@ set (CMAKE_POLICY_DEFAULT_CMP0126 NEW)
 
 project(ClickHouse LANGUAGES C CXX ASM)
 
+set(CMAKE_THREAD_LIBS_INIT "-lpthread")
+set(CMAKE_HAVE_THREADS_LIBRARY 1)
+set(CMAKE_USE_WIN32_THREADS_INIT 0)
+set(CMAKE_USE_PTHREADS_INIT 1)
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+
+foreach(policy
+        CMP0023
+        CMP0048 # CMake 3.0
+        CMP0074 # CMake 3.12
+        CMP0077
+        CMP0079
+    )
+    if(POLICY ${policy})
+        cmake_policy(SET ${policy} NEW)
+    endif()
+endforeach()
+
+# set default policy
+foreach(default_policy_var_name
+        # make option() honor normal variables for BUILD_SHARED_LIBS:
+        # - re2
+        # - snappy
+        CMAKE_POLICY_DEFAULT_CMP0077
+        # Google Test from sources uses too old cmake, 2.6.x, and CMP0022 should
+        # set, to avoid using deprecated LINK_INTERFACE_LIBRARIES(_<CONFIG>)? over
+        # INTERFACE_LINK_LIBRARIES.
+        CMAKE_POLICY_DEFAULT_CMP0022
+    )
+    set(${default_policy_var_name} NEW)
+endforeach()
+
 # If turned off: e.g. when ENABLE_FOO is ON, but FOO tool was not found, the CMake will continue.
 option(FAIL_ON_UNSUPPORTED_OPTIONS_COMBINATION
    "Stop/Fail CMake configuration if some ENABLE_XXX option is defined (either ON or OFF)
@@ -30,6 +62,23 @@ if(FAIL_ON_UNSUPPORTED_OPTIONS_COMBINATION)
 else()
     set(RECONFIGURE_MESSAGE_LEVEL WARNING)
 endif()
+
+if (ENABLE_CUDA)
+    # CMake doesn't have any supported CUDA architectures for clang-13,
+    #   so we need to make CMake think that we use clang-14 for CUDA files compilation,
+    #   and after that change it to our main compiler
+
+    set(CUDA_HOST_COMPILER clang++-14)
+    set(CMAKE_CUDA_COMPILER /usr/bin/clang++-14)
+    enable_language(CUDA)
+
+    set (CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --no-cuda-version-check -O3 -v")
+
+    # TODO: Make it general
+    link_directories(/usr/local/cuda/targets/x86_64-linux/lib)
+    set (CMAKE_CUDA_STANDARD 17)
+    set (CMAKE_CUDA_ARCHITECTURES 52)
+endif ()
 
 include (cmake/arch.cmake)
 include (cmake/target.cmake)
