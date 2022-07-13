@@ -1371,6 +1371,12 @@ try
         throw Exception(ErrorCodes::INVALID_SETTING_VALUE, "Settings asynchronous_metrics_update_period_s and asynchronous_heavy_metrics_update_period_s must not be zero");
     }
 
+#if USE_CUDA
+    LOG_INFO(log, "Initializaing CUDA context");
+    auto cuda_size = config().getUInt("cuda_host_pinned_mem_pool_size", 2147483648);
+    cudaInitDevice(0, cuda_size);
+#endif
+
     // Initialize global thread pool. Do it before we fetch configs from zookeeper
     // nodes (`from_zk`), because ZooKeeper interface uses the pool. We will
     // ignore `max_thread_pool_size` in configs we fetch from ZK, but oh well.

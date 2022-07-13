@@ -67,12 +67,18 @@ if (ENABLE_CUDA)
     # CMake doesn't have any supported CUDA architectures for clang-13,
     #   so we need to make CMake think that we use clang-14 for CUDA files compilation,
     #   and after that change it to our main compiler
-
-    set(CUDA_HOST_COMPILER clang++-14)
-    set(CMAKE_CUDA_COMPILER /usr/bin/clang++-14)
+    set (CUDA_ARCH 89)
+    set(CUDA_HOST_COMPILER clang++-20)
+    set(CMAKE_CUDA_COMPILER /usr/bin/clang++-20)
+    set (CUDA_INCLUDE "/mnt/data00/toolkit12/targets/x86_64-linux/include" "/mnt/data00/toolkit12/targets/x86_64-linux/include/cccl")
+    set (CMAKE_CUDA_ARCHITECTURES "${CUDA_ARCH}")
+    set(CMAKE_CUDA_COMPILER_WORKS TRUE)
+    set(CMAKE_CUDA_STANDARD 17)
+    set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --cuda-path=/mnt/data00/toolkit12")
     enable_language(CUDA)
 
-    set (CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --no-cuda-version-check -O3 -v")
+    # set (CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --no-cuda-version-check -O3 -v")
 
     # TODO: Make it general
     link_directories(/usr/local/cuda/targets/x86_64-linux/lib)

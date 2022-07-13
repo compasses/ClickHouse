@@ -2962,7 +2962,8 @@ void InterpreterSelectQuery::executeAggregation(
     if (settings.use_cuda_aggregation)
         aggregating_step = std::make_unique<CudaAggregatingStep>(
             query_plan.getCurrentDataStream(),
-            params,
+            std::move(aggregator_params),
+            std::move(grouping_sets_params),
             final,
             settings.max_block_size,
             settings.aggregation_in_order_max_block_bytes,
@@ -2971,6 +2972,7 @@ void InterpreterSelectQuery::executeAggregation(
             storage_has_evenly_distributed_read,
             std::move(group_by_info),
             std::move(group_by_sort_description),
+            should_produce_results_in_order_of_bucket_number,
             context);
 #endif
 
