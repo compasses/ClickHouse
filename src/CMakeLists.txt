@@ -383,42 +383,56 @@ add_library (dbms STATIC ${dbms_headers} ${dbms_sources})
 if (ENABLE_CUDA)
     add_library(dbms_cuda STATIC ${dbms_cuda_headers} ${dbms_cuda_sources})
     target_link_options(dbms_cuda PRIVATE -stdlib=libc++)
+
     target_compile_options(dbms_cuda PRIVATE
-            $<$<COMPILE_LANGUAGE:CUDA>:--cuda-path=/mnt/data00/toolkit12>
+            $<$<COMPILE_LANGUAGE:CUDA>:--cuda-path=/data00/heguangnan/toolkit12>
+            $<$<COMPILE_LANGUAGE:CUDA>:-Wno-undef>
+            $<$<COMPILE_LANGUAGE:CUDA>:-Wno-error=undef>
         )
+    target_compile_definitions(dbms_cuda PRIVATE
+        # Prevents libcudacxx from providing conflicting C string wrappers
+        _LIBCUDACXX_DISABLE_STRING_H
+        # Ensures correct ISO C++ signatures for string functions in libc++
+        __CORRECT_ISO_CPP_STRING_H_PROTO
+        # Helps resolve some C++20/23 allocation mismatches in hermetic builds
+        _LIBCPP_HAS_NO_ALIGNED_ALLOCATION
+        )
+
+
+    set_target_properties(dbms_cuda PROPERTIES
+        CXX_STANDARD 23
+        CXX_STANDARD_REQUIRED ON
+        CUDA_STANDARD 23
+        CUDA_STANDARD_REQUIRED ON
+    )
+
+    target_compile_definitions(dbms_cuda PRIVATE _LIBCUDACXX_HAS_NO_LIBCXX_INCLUDES)
+    target_link_libraries(dbms_cuda PRIVATE common pcg_random ch_contrib::pdqsort ch_contrib::abseil_swiss_tables absl::synchronization ch_contrib::double_conversion ch_contrib::miniselect)
+    # target_link_libraries(dbms_cuda PRIVATE "${CUDA_LIB}/libcudart.so")
+    if (TARGET ch_contrib::llvm)
+        target_link_libraries(dbms_cuda PRIVATE ch_contrib::llvm)
+    endif()
+    if (ENABLE_CLICKHOUSE_DISTRIBUTED_CACHE)
+        target_compile_definitions(dbms_cuda PUBLIC ENABLE_DISTRIBUTED_CACHE=1)
+    else()
+        target_compile_definitions(dbms_cuda PUBLIC ENABLE_DISTRIBUTED_CACHE=0)
+    endif()
     target_link_libraries (dbms PRIVATE dbms_cuda)
-    # target_link_libraries (dbms_cuda PRIVATE
-    #     boost::filesystem
-    #     boost::program_options
-    #     clickhouse_common_config
-    #     clickhouse_common_zookeeper_base
-    #     clickhouse_common_zookeeper
-    #     clickhouse_dictionaries_embedded
-    #     clickhouse_parsers
-    #     ch_contrib::lz4
-    #     Poco::JSON
-    #     boost::system
-    #     clickhouse_compression
-    #     clickhouse_common_io
-    #     Poco::Redis
-    #     Poco::Util
-    # )
+
     target_include_directories(dbms_cuda SYSTEM PUBLIC "${CUDA_INCLUDE}")
-    # target_include_directories(dbms_cuda PUBLIC "${ClickHouse_SOURCE_DIR}/src" "${ClickHouse_BINARY_DIR}/src")
-    # target_include_directories(dbms_cuda SYSTEM PUBLIC ${CUDA_INCLUDE})
-    # target_include_directories(dbms_cuda SYSTEM PRIVATE
-    #     ${ClickHouse_SOURCE_DIR}/contrib/llvm-project/libcxx/include
-    #     ${ClickHouse_SOURCE_DIR}/contrib/llvm-project/libcxxabi/include
-    #     ${ClickHouse_SOURCE_DIR}/contrib/llvm-project/libunwind/include
-    #     ${ClickHouse_BINARY_DIR}/contrib/llvm-project/libcxx/include/c++/v1
-    # )
+    target_include_directories(dbms_cuda PUBLIC "${ClickHouse_SOURCE_DIR}/src" "${ClickHouse_BINARY_DIR}/src")
+    target_include_directories(dbms_cuda SYSTEM PRIVATE "${ClickHouse_SOURCE_DIR}/base" "${ClickHouse_BINARY_DIR}/base")
     target_compile_definitions(dbms_cuda PRIVATE _ALLOW_UNSUPPORTED_LIBCPP)
 
     target_compile_options(dbms_cuda PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--no-cuda-version-check -O3 -Wno-unknown-cuda-version>)
-    # target_compile_definitions(dbms_cuda PRIVATE
-    #     __CORRECT_ISO_CPP_STRING_H_PROTO
-    #     $<$<COMPILE_LANGUAGE:CUDA>:_ALLOW_UNSUPPORTED_LIBCPP>
-    # )
+    find_library(SYSTEM_CUDA_DRIVER cuda HINTS /lib/x86_64-linux-gnu /usr/lib/x86_64-linux-gnu)
+
+    if (SYSTEM_CUDA_DRIVER)
+        target_link_libraries(dbms_cuda PRIVATE ${SYSTEM_CUDA_DRIVER})
+    else()
+        message(WARNING "System libcuda.so.1 not found. Driver load may fail at runtime.")
+    endif()
+    target_link_options(dbms_cuda PRIVATE "-Wl,-Bsymbolic")
 endif ()
 
 target_link_libraries (dbms PRIVATE ch_contrib::libdivide daemon)
@@ -430,7 +444,7 @@ endif()
 target_include_directories (dbms PUBLIC "${ClickHouse_SOURCE_DIR}/src" "${ClickHouse_BINARY_DIR}/src")
 target_include_directories (clickhouse_common_io PUBLIC "${ClickHouse_SOURCE_DIR}/src" "${ClickHouse_BINARY_DIR}/src")
 if (ENABLE_CUDA)
-    target_include_directories(clickhouse_common_io SYSTEM PUBLIC ${CUDA_INCLUDE})
+    target_include_directories(clickhouse_common_io SYSTEM PUBLIC "${CUDA_INCLUDE}")
 endif ()
 
 if (TARGET ch_contrib::llvm)

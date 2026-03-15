@@ -6,17 +6,17 @@
 #include <Common/Cuda/cudaReadUnaligned.cuh>
 
 __global__ void
-kerCalcHash(DB::UInt32 str_num, char * arr, DB::UInt32 * begs, bool interpret_as_lengths, DB::UInt32 * lens, DB::UInt64 * res_hash)
+kerCalcHash(UInt32 str_num, char * arr, UInt32 * begs, bool interpret_as_lengths, UInt32 * lens, UInt64 * res_hash)
 {
-    DB::UInt32 i = blockIdx.x * blockDim.x + threadIdx.x;
+    UInt32 i = blockIdx.x * blockDim.x + threadIdx.x;
     if (!(i < str_num))
         return;
 
-    DB::UInt32 len = lens[i], beg = begs[i];
+    UInt32 len = lens[i], beg = begs[i];
     if (!interpret_as_lengths)
         --len;
 
-    DB::UInt64 h = CityHash_v1_0_2_cuda::cudaCityHash64(&(arr[beg]), len);
+    UInt64 h = CityHash_v1_0_2_cuda::cudaCityHash64(&(arr[beg]), len);
 
     /// TODO make it optional
     if (h == 0xFFFFFFFFFFFFFFFF)
@@ -26,12 +26,12 @@ kerCalcHash(DB::UInt32 str_num, char * arr, DB::UInt32 * begs, bool interpret_as
 }
 
 void cudaCalcCityHash64(
-    DB::UInt32 str_num,
+    UInt32 str_num,
     char * buf,
     bool interpret_as_lengths,
-    DB::UInt32 * lens,
-    DB::UInt32 * offsets,
-    DB::UInt64 * res_hash,
+    UInt32 * lens,
+    UInt32 * offsets,
+    UInt64 * res_hash,
     cudaStream_t stream)
 {
     kerCalcHash<<<(str_num / 256) + 1, 256, 0, stream>>>(str_num, buf, offsets, interpret_as_lengths, lens, res_hash);

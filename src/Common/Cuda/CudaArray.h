@@ -12,7 +12,7 @@ template <class T>
 class CudaArray : private boost::noncopyable
 {
 public:
-    typedef T ValueType;
+    using ValueType = T;
 
     CudaArray(size_t sz_);
 

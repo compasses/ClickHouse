@@ -12,6 +12,7 @@
 #include <Common/Exception.h>
 #include <Common/FieldVisitorToString.h>
 #include <Common/FieldVisitors.h>
+#include <Common/Logger.h>
 #include <Common/ProfileEvents.h>
 #include <Common/logger_useful.h>
 
@@ -27,6 +28,9 @@
 #include <Processors/QueryPlan/IntersectOrExceptStep.h>
 #include <Processors/QueryPlan/CreatingSetsStep.h>
 #include <Processors/QueryPlan/AggregatingStep.h>
+#if USE_CUDA
+#include <Processors/QueryPlan/Cuda/CudaAggregatingStep.h>
+#endif
 #include <Processors/QueryPlan/MergingAggregatedStep.h>
 #include <Processors/QueryPlan/SortingStep.h>
 #include <Processors/QueryPlan/FillingStep.h>
@@ -146,6 +150,7 @@ namespace Setting
     extern const SettingsBool serialize_string_in_memory_with_zero_byte;
     extern const SettingsString temporary_files_codec;
     extern const SettingsNonZeroUInt64 temporary_files_buffer_size;
+    extern const SettingsBool use_cuda_aggregation;
 }
 
 namespace ServerSetting
@@ -162,6 +167,7 @@ namespace ErrorCodes
     extern const int NOT_IMPLEMENTED;
     extern const int SUPPORT_IS_DISABLED;
     extern const int INVALID_LIMIT_EXPRESSION;
+    extern const int CUDA_UNSUPPORTED_CASE;
 }
 
 namespace
@@ -682,22 +688,64 @@ void addAggregationStep(QueryPlan & query_plan,
             storage_has_evenly_distributed_read = table_function_node->getStorageOrThrow()->hasEvenlyDistributedRead();
     }
 
-    auto aggregating_step = std::make_unique<AggregatingStep>(
-        query_plan.getCurrentHeader(),
-        aggregator_params,
-        aggregation_analysis_result.grouping_sets_parameters_list,
-        query_analysis_result.aggregate_final,
-        settings[Setting::max_block_size],
-        settings[Setting::aggregation_in_order_max_block_bytes],
-        merge_threads,
-        temporary_data_merge_threads,
-        storage_has_evenly_distributed_read,
-        settings[Setting::group_by_use_nulls],
-        std::move(sort_description_for_merging),
-        std::move(group_by_sort_description),
-        query_analysis_result.aggregation_should_produce_results_in_order_of_bucket_number,
-        settings[Setting::enable_memory_bound_merging_of_aggregation_results],
-        settings[Setting::force_aggregation_in_order]);
+    QueryPlanStepPtr aggregating_step;
+
+#if USE_CUDA
+    if (settings[Setting::use_cuda_aggregation])
+    {
+        try
+        {
+            aggregating_step = std::make_unique<CudaAggregatingStep>(
+                query_plan.getCurrentHeader(),
+                aggregator_params,
+                aggregation_analysis_result.grouping_sets_parameters_list,
+                query_analysis_result.aggregate_final,
+                settings[Setting::max_block_size],
+                settings[Setting::aggregation_in_order_max_block_bytes],
+                merge_threads,
+                temporary_data_merge_threads,
+                settings[Setting::group_by_use_nulls],
+                sort_description_for_merging,
+                group_by_sort_description,
+                query_analysis_result.aggregation_should_produce_results_in_order_of_bucket_number,
+                settings[Setting::enable_memory_bound_merging_of_aggregation_results],
+                settings[Setting::force_aggregation_in_order],
+                planner_context->getQueryContext());
+        }
+        catch (const Exception & e)
+        {
+            if (e.code() == ErrorCodes::CUDA_UNSUPPORTED_CASE)
+            {
+                LOG_DEBUG(getLogger("planner"), "Falling back to CPU aggregation: {}", e.getStackTraceString());
+                aggregating_step.reset();
+            }
+            else
+            {
+                throw;
+            }
+        }
+    }
+#endif
+
+    if (!aggregating_step)
+    {
+        aggregating_step = std::make_unique<AggregatingStep>(
+            query_plan.getCurrentHeader(),
+            aggregator_params,
+            aggregation_analysis_result.grouping_sets_parameters_list,
+            query_analysis_result.aggregate_final,
+            settings[Setting::max_block_size],
+            settings[Setting::aggregation_in_order_max_block_bytes],
+            merge_threads,
+            temporary_data_merge_threads,
+            storage_has_evenly_distributed_read,
+            settings[Setting::group_by_use_nulls],
+            std::move(sort_description_for_merging),
+            std::move(group_by_sort_description),
+            query_analysis_result.aggregation_should_produce_results_in_order_of_bucket_number,
+            settings[Setting::enable_memory_bound_merging_of_aggregation_results],
+            settings[Setting::force_aggregation_in_order]);
+    }
     query_plan.addStep(std::move(aggregating_step));
 }
 

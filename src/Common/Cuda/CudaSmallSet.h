@@ -9,7 +9,7 @@
 /// cuda_details::atomicCAS<Key> is defined and for which there is no non-trivial
 /// destructor
 
-template <typename Key, DB::UInt8 capacity>
+template <typename Key, UInt8 capacity>
 class CudaSmallSet
 {
 protected:
@@ -20,12 +20,12 @@ protected:
 
 public:
     using key_type = Key;
-    //constexpr DB::UInt8 capacity_value = capacity;
+    //constexpr UInt8 capacity_value = capacity;
 
 public:
     __device__ __host__ CudaSmallSet() : has_zero_elem(false)
     {
-        for (DB::UInt8 i = 0; i < capacity; ++i)
+        for (UInt8 i = 0; i < capacity; ++i)
             CudaZeroTraits::set<Key>(buf[i]);
     }
     /// TODO there is no garantee that memset(0) will create correct 'zero' keys (only true for simple types)
@@ -39,7 +39,7 @@ public:
             has_zero_elem = true;
             return true;
         }
-        for (DB::UInt8 i = 0; i < capacity; ++i)
+        for (UInt8 i = 0; i < capacity; ++i)
         {
             Key x = buf[i];
             if (x == key)
@@ -56,7 +56,7 @@ public:
 
     __device__ bool tryMerge(const CudaSmallSet & rhs)
     {
-        for (DB::UInt8 i = 0; i < capacity; ++i)
+        for (UInt8 i = 0; i < capacity; ++i)
         {
             if (CudaZeroTraits::check(rhs.buf[i]))
                 break;
@@ -68,9 +68,9 @@ public:
         return true;
     }
 
-    DB::UInt8 size() const
+    UInt8 size() const
     {
-        DB::UInt8 res = 0;
+        UInt8 res = 0;
         while (res < capacity)
         {
             if (CudaZeroTraits::check(buf[res]))
@@ -85,7 +85,7 @@ public:
     __device__ __host__ bool hasZeroElem() const { return has_zero_elem; }
     __device__ __host__ bool sizeWithoutZeroElem() const
     {
-        DB::UInt8 res = 0;
+        UInt8 res = 0;
         while (res < capacity)
         {
             if (CudaZeroTraits::check(buf[res]))
@@ -94,5 +94,5 @@ public:
         }
         return res;
     }
-    __device__ __host__ const Key & getWithoutZeroElem(DB::UInt8 i) const { return buf[i]; }
+    __device__ __host__ const Key & getWithoutZeroElem(UInt8 i) const { return buf[i]; }
 };

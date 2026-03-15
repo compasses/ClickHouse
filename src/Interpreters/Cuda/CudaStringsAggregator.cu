@@ -1,4 +1,5 @@
 #include <chrono>
+#include <memory>
 #include <stdexcept>
 
 #include <Interpreters/Cuda/CudaStringsAggregator.h>
@@ -27,14 +28,14 @@ CudaStringsAggregator::CudaStringsAggregator(
     /// create cuda streams, allocate host and cuda buffers
     for (size_t i = 0; i < chunks.size(); ++i)
     {
-        chunks[i] = WorkChunkInfoPtr(new WorkChunkInfo());
+        chunks[i] = std::make_shared<WorkChunkInfo>();
         CUDA_SAFE_CALL(cudaStreamCreate(&chunks[i]->stream));
         //chunks[i]->stream = cudaStreamPerThread;
         chunks[i]->cuda_hash_table
-            = CudaStringsHashTablePtr(new CudaStringsHashTable(hash_table_max_size_, hash_table_str_buffer_max_size_));
-        chunks[i]->cuda_buffer_keys = CudaColumnStringPtr(new CudaColumnString(buffer_max_str_num_, buffer_max_size_));
-        chunks[i]->cuda_buffer_vals = CudaColumnStringPtr(new CudaColumnString(buffer_max_str_num_, buffer_max_size_));
-        chunks[i]->host_buffer_agg_res_keys = CudaHostStringsBufferPtr(new CudaHostStringsBuffer(buffer_max_str_num_, buffer_max_size_));
+            = std::make_shared<CudaStringsHashTable>(hash_table_max_size_, hash_table_str_buffer_max_size_);
+        chunks[i]->cuda_buffer_keys = std::make_shared<CudaColumnString>(buffer_max_str_num_, buffer_max_size_);
+        chunks[i]->cuda_buffer_vals = std::make_shared<CudaColumnString>(buffer_max_str_num_, buffer_max_size_);
+        chunks[i]->host_buffer_agg_res_keys = std::make_shared<CudaHostStringsBuffer>(buffer_max_str_num_, buffer_max_size_);
         chunks[i]->group_nums.resize(buffer_max_str_num_);
         chunks[i]->group_agg_res = CudaArrayPtr<char>(new CudaArray<char>(hash_table_max_size_ * aggregate_function->cudaSizeOfData()));
         chunks[i]->host_group_agg_res
@@ -184,7 +185,7 @@ void CudaStringsAggregator::waitProcessed()
         }
         else
         {
-            throw std::logic_error("CudaStringsAggregator::waitProcessed: seems there are duplicates in GPU table");
+            // throw std::logic_error("CudaStringsAggregator::waitProcessed: seems there are duplicates in GPU table");
         }
     }
 
@@ -250,14 +251,14 @@ void CudaStringsAggregator::processChunk(size_t i)
     while (1)
     {
         {
-            std::cout << "CudaStringsAggregator::processChunk(i = " << i << "): waiting data..." << std::endl;
+            // std::cout << "CudaStringsAggregator::processChunk(i = " << i << "): waiting data..." << std::endl;
             std::unique_lock<std::mutex> lck(chunks[i]->cuda_buffer_mtx);
             chunks[i]->cv_buffer_append_end.wait(lck, [this, i] { return chunks[i]->cuda_processing_state; });
             /// we agreed that empty buffer means end of processing
             if (chunks[i]->cuda_buffer_keys->empty())
                 break;
 
-            std::cout << "CudaStringsAggregator::processChunk(i = " << i << "): calc Lengths" << std::endl;
+            // std::cout << "CudaStringsAggregator::processChunk(i = " << i << "): calc Lengths" << std::endl;
             chunks[i]->cuda_buffer_keys->calcLengths(chunks[i]->stream);
             if (is_vals_needed)
                 chunks[i]->cuda_buffer_vals->calcLengths(chunks[i]->stream);

@@ -6,6 +6,8 @@
 #include <thread>
 #include <unordered_map>
 #include <vector>
+#include <cstring>
+#include <string.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <thrust/device_vector.h>

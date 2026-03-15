@@ -20,7 +20,7 @@ namespace cuda_details
 {
 
 /// Look-up table of logarithms for integer numbers, used in HyperLogLogCounter.
-template <DB::UInt8 K>
+template <UInt8 K>
 struct LogLUT
 {
     LogLUT()
@@ -44,32 +44,32 @@ private:
     double log_table[M + 1];
 };
 
-template <DB::UInt8 K>
+template <UInt8 K>
 struct MinCounterTypeHelper;
 template <>
 struct MinCounterTypeHelper<0>
 {
-    using Type = DB::UInt8;
+    using Type = UInt8;
 };
 template <>
 struct MinCounterTypeHelper<1>
 {
-    using Type = DB::UInt16;
+    using Type = UInt16;
 };
 template <>
 struct MinCounterTypeHelper<2>
 {
-    using Type = DB::UInt32;
+    using Type = UInt32;
 };
 template <>
 struct MinCounterTypeHelper<3>
 {
-    using Type = DB::UInt64;
+    using Type = UInt64;
 };
 
 /// Auxiliary structure for automatic determining minimum size of counter's type depending on its maximum value.
 /// Used in HyperLogLogCounter in order to spend memory efficiently.
-template <DB::UInt64 MaxValue>
+template <UInt64 MaxValue>
 struct MinCounterType
 {
     using Type = typename MinCounterTypeHelper<(MaxValue >= 1 << 8) + (MaxValue >= 1 << 16) + (MaxValue >= 1ULL << 32)>::Type;
@@ -77,7 +77,7 @@ struct MinCounterType
 
 /// Denominator of expression for HyperLogLog algorithm.
 template <
-    DB::UInt8 precision,
+    UInt8 precision,
     int max_rank,
     typename HashValueType,
     typename DenominatorType,
@@ -89,7 +89,7 @@ namespace
 {
 
     /// Returns true if rank storage is big.
-    constexpr bool isBigRankStore(DB::UInt8 precision) { return precision >= 12; }
+    constexpr bool isBigRankStore(UInt8 precision) { return precision >= 12; }
 
 }
 
@@ -99,7 +99,7 @@ struct IntermediateDenominator;
 
 template <typename DenominatorType, DenominatorMode denominator_mode>
 struct IntermediateDenominator<
-    DB::UInt32,
+    UInt32,
     DenominatorType,
     denominator_mode,
     typename std::enable_if<denominator_mode != DenominatorMode::ExactType>::type>
@@ -108,7 +108,7 @@ struct IntermediateDenominator<
 };
 
 template <typename DenominatorType, DenominatorMode denominator_mode>
-struct IntermediateDenominator<DB::UInt64, DenominatorType, denominator_mode>
+struct IntermediateDenominator<UInt64, DenominatorType, denominator_mode>
 {
     using Type = long double;
 };
@@ -122,7 +122,7 @@ struct IntermediateDenominator<HashValueType, DenominatorType, DenominatorMode::
 /// "Lightweight" implementation of expression's denominator for HyperLogLog algorithm.
 /// Uses minimum amount of memory, but estimates may be unstable.
 /// Satisfiable when rank storage is small enough.
-template <DB::UInt8 precision, int max_rank, typename HashValueType, typename DenominatorType, DenominatorMode denominator_mode>
+template <UInt8 precision, int max_rank, typename HashValueType, typename DenominatorType, DenominatorMode denominator_mode>
 class Denominator<
     precision,
     max_rank,
@@ -139,12 +139,12 @@ public:
     __device__ __host__ Denominator(DenominatorType initial_value) : denominator(initial_value) { }
 
 public:
-    inline __device__ void update(DB::UInt8 cur_rank, DB::UInt8 new_rank)
+    inline __device__ void update(UInt8 cur_rank, UInt8 new_rank)
     {
         cuda_details::atomicAdd(&denominator, +static_cast<T>(1.0) / (1ULL << new_rank) - static_cast<T>(1.0) / (1ULL << cur_rank));
     }
 
-    inline __device__ void update(DB::UInt8 rank) { cuda_details::atomicAdd(&denominator, static_cast<T>(1.0) / (1ULL << rank)); }
+    inline __device__ void update(UInt8 rank) { cuda_details::atomicAdd(&denominator, static_cast<T>(1.0) / (1ULL << rank)); }
 
     __device__ void clear() { denominator = 0; }
 
@@ -157,7 +157,7 @@ private:
 /// Fully-functional version of expression's denominator for HyperLogLog algorithm.
 /// Spends more space that lightweight version. Estimates will always be stable.
 /// Used when rank storage is big.
-template <DB::UInt8 precision, int max_rank, typename HashValueType, typename DenominatorType, DenominatorMode denominator_mode>
+template <UInt8 precision, int max_rank, typename HashValueType, typename DenominatorType, DenominatorMode denominator_mode>
 class Denominator<
     precision,
     max_rank,
@@ -170,21 +170,21 @@ public:
     __device__ __host__ void initNonzeroData(DenominatorType initial_value) { rank_count[0] = initial_value; }
     __device__ __host__ Denominator(DenominatorType initial_value)
     {
-        //memset(rank_count, 0, size * sizeof(DB::UInt32));
+        //memset(rank_count, 0, size * sizeof(UInt32));
         rank_count[0] = initial_value;
         for (uint32_t i = 1; i < size; ++i)
             rank_count[i] = 0;
     }
 
-    inline __device__ void update(DB::UInt8 cur_rank, DB::UInt8 new_rank)
+    inline __device__ void update(UInt8 cur_rank, UInt8 new_rank)
     {
-        cuda_details::atomicSub(&(rank_count[cur_rank]), (DB::UInt32)1);
-        cuda_details::atomicAdd(&(rank_count[new_rank]), (DB::UInt32)1);
+        cuda_details::atomicSub(&(rank_count[cur_rank]), (UInt32)1);
+        cuda_details::atomicAdd(&(rank_count[new_rank]), (UInt32)1);
     }
 
-    inline __device__ void update(DB::UInt8 rank) { cuda_details::atomicAdd(&(rank_count[rank]), (DB::UInt32)1); }
+    inline __device__ void update(UInt8 rank) { cuda_details::atomicAdd(&(rank_count[rank]), (UInt32)1); }
 
-    __device__ void clear() { memset(rank_count, 0, size * sizeof(DB::UInt32)); }
+    __device__ void clear() { memset(rank_count, 0, size * sizeof(UInt32)); }
 
     DenominatorType get() const
     {
@@ -199,7 +199,7 @@ public:
 
 private:
     static constexpr size_t size = max_rank + 1;
-    DB::UInt32 rank_count[size];
+    UInt32 rank_count[size];
 };
 
 /// Number of trailing zeros.
@@ -207,15 +207,15 @@ template <typename T>
 struct TrailingZerosCounter;
 
 template <>
-struct TrailingZerosCounter<DB::UInt32>
+struct TrailingZerosCounter<UInt32>
 {
-    static __device__ int apply(DB::UInt32 val) { return __ffs(val) - 1; }
+    static __device__ int apply(UInt32 val) { return __ffs(val) - 1; }
 };
 
 template <>
-struct TrailingZerosCounter<DB::UInt64>
+struct TrailingZerosCounter<UInt64>
 {
-    static __device__ int apply(DB::UInt64 val) { return __ffsll(val) - 1; }
+    static __device__ int apply(UInt64 val) { return __ffsll(val) - 1; }
 };
 
 /// Size of counter's rank in bits.
@@ -223,15 +223,15 @@ template <typename T>
 struct RankWidth;
 
 template <>
-struct RankWidth<DB::UInt32>
+struct RankWidth<UInt32>
 {
-    static constexpr DB::UInt8 get() { return 5; }
+    static constexpr UInt8 get() { return 5; }
 };
 
 template <>
-struct RankWidth<DB::UInt64>
+struct RankWidth<UInt64>
 {
-    static constexpr DB::UInt8 get() { return 6; }
+    static constexpr UInt8 get() { return 6; }
 };
 
 }
@@ -247,9 +247,9 @@ enum class CudaHyperLogLogMode
 
 
 template <
-    DB::UInt8 precision,
-    typename Hash = CudaIntHash32<DB::UInt64>,
-    typename HashValueType = DB::UInt32,
+    UInt8 precision,
+    typename Hash = CudaIntHash32<UInt64>,
+    typename HashValueType = UInt32,
     typename DenominatorType = double,
     typename BiasEstimator = CudaTrivialBiasEstimator,
     CudaHyperLogLogMode mode = CudaHyperLogLogMode::FullFeatured,
@@ -261,12 +261,12 @@ private:
     static constexpr size_t bucket_count = 1ULL << precision;
 
     /// Size of counter's rank in bits.
-    static constexpr DB::UInt8 rank_width = cuda_details::RankWidth<HashValueType>::get();
+    static constexpr UInt8 rank_width = cuda_details::RankWidth<HashValueType>::get();
 
 private:
-    using Value_t = DB::UInt64;
+    using Value_t = UInt64;
     //using RankStore = DB::CompactArray<HashValueType, rank_width, bucket_count>;
-    typedef DB::UInt8 RankStore[bucket_count];
+    typedef UInt8 RankStore[bucket_count];
 
 public:
     __device__ __host__ void initNonzeroData()
@@ -276,7 +276,7 @@ public:
     }
     __device__ __host__ CudaHyperLogLogCounter() : denominator(bucket_count), zeros(bucket_count)
     {
-        //memset(rank_store, 0, bucket_count * sizeof(DB::UInt8));
+        //memset(rank_store, 0, bucket_count * sizeof(UInt8));
         for (uint32_t i = 0; i < bucket_count; ++i)
             rank_store[i] = 0;
     }
@@ -287,13 +287,13 @@ public:
         /// Divide hash to two sub-values. First is bucket number, second will be used to calculate rank.
         HashValueType bucket = extractBitSequence(hash, 0, precision);
         HashValueType tail = extractBitSequence(hash, precision, sizeof(HashValueType) * 8);
-        DB::UInt8 rank = calculateRank(tail);
+        UInt8 rank = calculateRank(tail);
 
         /// Update maximum rank for current bucket.
         update(bucket, rank);
     }
 
-    DB::UInt64 size() const
+    UInt64 size() const
     {
         /// Normalizing factor for harmonic mean.
         static constexpr double alpha_m = bucket_count == 2 ? 0.351
@@ -311,7 +311,7 @@ public:
 
         double final_estimate = fixRawEstimate(raw_estimate);
 
-        return static_cast<DB::UInt64>(final_estimate + 0.5);
+        return static_cast<UInt64>(final_estimate + 0.5);
     }
 
     __device__ void merge(const CudaHyperLogLogCounter & rhs)
@@ -323,13 +323,13 @@ public:
 
 private:
     /// Extract subset of bits in [begin, end[ range.
-    inline __device__ HashValueType extractBitSequence(HashValueType val, DB::UInt8 begin, DB::UInt8 end) const
+    inline __device__ HashValueType extractBitSequence(HashValueType val, UInt8 begin, UInt8 end) const
     {
         return (val >> begin) & ((1ULL << (end - begin)) - 1);
     }
 
     /// Rank is number of trailing zeros.
-    inline __device__ DB::UInt8 calculateRank(HashValueType val) const
+    inline __device__ UInt8 calculateRank(HashValueType val) const
     {
         if (val == 0)
             return max_rank;
@@ -345,9 +345,9 @@ private:
     inline __device__ HashValueType getHash(Value_t key) const { return Hash::operator()(key); }
 
     /// Update maximum rank for current bucket.
-    void __device__ update(HashValueType bucket, DB::UInt8 rank)
+    void __device__ update(HashValueType bucket, UInt8 rank)
     {
-        DB::UInt8 old_rank = cuda_details::atomicMax(&(rank_store[bucket]), rank);
+        UInt8 old_rank = cuda_details::atomicMax(&(rank_store[bucket]), rank);
 
         if (rank > old_rank)
         {
@@ -458,7 +458,7 @@ private:
 };
 
 template <
-    DB::UInt8 precision,
+    UInt8 precision,
     typename Hash,
     typename HashValueType,
     typename DenominatorType,

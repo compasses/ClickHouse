@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <cstring>
 #include <cuda.h>
 #include <cuda_runtime.h>
 

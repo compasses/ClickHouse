@@ -479,7 +479,16 @@ namespace fs = std::filesystem;
 int mainEntryClickHouseServer(int argc, char ** argv)
 {
     DB::Server app;
-
+    CUresult driver_init = cuInit(0);
+            if (driver_init != CUDA_SUCCESS) {
+                const char* err_str;
+                cuGetErrorString(driver_init, &err_str);
+                std::cerr << "CUDA Probe: cuInit failed:" << err_str << "\n";
+            } else {
+                CUdevice dev;
+                CUresult dev_get = cuDeviceGet(&dev, 0);
+                std::cerr << "CUDA Probe: cuDeviceGet result:" <<  dev_get;
+            }
     /// Do not fork separate process from watchdog if we attached to terminal.
     /// Otherwise it breaks gdb usage.
     /// Can be overridden by environment variable (cannot use server config at this moment).
@@ -1109,6 +1118,12 @@ static std::vector<String> getSanitizerNames()
 int Server::main(const std::vector<std::string> & /*args*/)
 try
 {
+#if USE_CUDA
+    std::cerr << "\n========== [EARLY CUDA PROBE] ==========\n";
+    cudaInitDevice(0, 0); // test early initialization
+    std::cerr << "========================================\n\n";
+#endif
+
 #if USE_SSL
     ::ssh::LibSSHInitializer::instance();
     ::ssh::libsshLogger::initialize();
@@ -1233,10 +1248,10 @@ try
         LOG_INFO(log, "Starting console logger in level {}", config().getString("logger.startup_console_log_level"));
     }
 
-#if USE_CUDA
-    LOG_INFO(log, "Initializaing CUDA context");
-    cudaInitDevice(0, 17179869184);
-#endif
+// #if USE_CUDA
+//     LOG_INFO(log, "Initializaing CUDA context");
+//     cudaInitDevice(0, 17179869184);
+// #endif
 
     MainThreadStatus::getInstance();
 
@@ -1372,9 +1387,10 @@ try
     }
 
 #if USE_CUDA
-    LOG_INFO(log, "Initializaing CUDA context");
+    LOG_INFO(log, "Initializing CUDA pinned memory pool...");
     auto cuda_size = config().getUInt("cuda_host_pinned_mem_pool_size", 2147483648);
     cudaInitDevice(0, cuda_size);
+    // CudaHostPinnedMemPool::instance().init(cuda_size);
 #endif
 
     // Initialize global thread pool. Do it before we fetch configs from zookeeper

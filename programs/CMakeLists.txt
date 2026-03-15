@@ -300,3 +300,8 @@ else()
         )
     endforeach()
 endif ()
+
+if (ENABLE_CUDA)
+    message(STATUS "Adding cuda dependent targets")
+    target_link_options(clickhouse PRIVATE "LINKER:--push-state,--no-as-needed,-L/mnt/data00/toolkit12/lib64 -lcudart_static,--pop-state")
+endif ()

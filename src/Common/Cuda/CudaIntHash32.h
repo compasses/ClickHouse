@@ -2,8 +2,8 @@
 
 #include <base/types.h>
 
-template <DB::UInt64 salt>
-inline __device__ DB::UInt32 cudaIntHash32(DB::UInt64 key)
+template <UInt64 salt>
+inline __device__ UInt32 cudaIntHash32(UInt64 key)
 {
     key ^= salt;
 
@@ -17,8 +17,8 @@ inline __device__ DB::UInt32 cudaIntHash32(DB::UInt64 key)
     return key;
 }
 
-template <typename T, DB::UInt64 salt = 0>
+template <typename T, UInt64 salt = 0>
 struct CudaIntHash32
 {
-    __device__ DB::UInt32 operator()(const T & key) const { return cudaIntHash32<salt>(key); }
+    __device__ UInt32 operator()(const T & key) const { return cudaIntHash32<salt>(key); }
 };

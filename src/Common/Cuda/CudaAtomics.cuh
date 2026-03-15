@@ -15,13 +15,13 @@ inline __device__ T atomicCAS(T * address, T compare, T val)
 }
 
 template <>
-inline __device__ DB::UInt32 atomicCAS<DB::UInt32>(DB::UInt32 * address, DB::UInt32 compare, DB::UInt32 val)
+inline __device__ UInt32 atomicCAS<UInt32>(UInt32 * address, UInt32 compare, UInt32 val)
 {
     return ::atomicCAS((unsigned int *)address, (unsigned int)compare, (unsigned int)val);
 }
 
 template <>
-inline __device__ DB::UInt64 atomicCAS<DB::UInt64>(DB::UInt64 * address, DB::UInt64 compare, DB::UInt64 val)
+inline __device__ UInt64 atomicCAS<UInt64>(UInt64 * address, UInt64 compare, UInt64 val)
 {
     return ::atomicCAS((unsigned long long int *)address, (unsigned long long int)compare, (unsigned long long int)val);
 }
@@ -35,7 +35,7 @@ inline __device__ T atomicAdd(T * address, T val)
 /// Taken from nvidia forums.
 /// WARNING it does not properly handle overflows
 template <>
-inline __device__ DB::UInt16 atomicAdd<DB::UInt16>(DB::UInt16 * address, DB::UInt16 val)
+inline __device__ UInt16 atomicAdd<UInt16>(UInt16 * address, UInt16 val)
 {
     unsigned int * base_address = (unsigned int *)((size_t)address & ~2);
     unsigned int long_val = ((size_t)address & 2) ? ((unsigned int)val << 16) : val;
@@ -46,13 +46,13 @@ inline __device__ DB::UInt16 atomicAdd<DB::UInt16>(DB::UInt16 * address, DB::UIn
 }
 
 template <>
-inline __device__ DB::UInt32 atomicAdd<DB::UInt32>(DB::UInt32 * address, DB::UInt32 val)
+inline __device__ UInt32 atomicAdd<UInt32>(UInt32 * address, UInt32 val)
 {
     return ::atomicAdd((unsigned int *)address, (unsigned int)val);
 }
 
 template <>
-inline __device__ DB::UInt64 atomicAdd<DB::UInt64>(DB::UInt64 * address, DB::UInt64 val)
+inline __device__ UInt64 atomicAdd<UInt64>(UInt64 * address, UInt64 val)
 {
     return ::atomicAdd((unsigned long long int *)address, (unsigned long long int)val);
 }
@@ -72,7 +72,7 @@ inline __device__ T atomicSub(T * address, T val)
 /// Taken from nvidia forums.
 /// WARNING it does not properly handle overflows
 template <>
-inline __device__ DB::UInt16 atomicSub<DB::UInt16>(DB::UInt16 * address, DB::UInt16 val)
+inline __device__ UInt16 atomicSub<UInt16>(UInt16 * address, UInt16 val)
 {
     unsigned int * base_address = (unsigned int *)((size_t)address & ~2);
     unsigned int long_val = ((size_t)address & 2) ? ((unsigned int)val << 16) : val;
@@ -83,7 +83,7 @@ inline __device__ DB::UInt16 atomicSub<DB::UInt16>(DB::UInt16 * address, DB::UIn
 }
 
 template <>
-inline __device__ DB::UInt32 atomicSub<DB::UInt32>(DB::UInt32 * address, DB::UInt32 val)
+inline __device__ UInt32 atomicSub<UInt32>(UInt32 * address, UInt32 val)
 {
     return ::atomicSub((unsigned int *)address, (unsigned int)val);
 }
@@ -96,7 +96,7 @@ inline __device__ T atomicMax(T * address, T val)
 
 /// taken from nvidia forum
 template <>
-inline __device__ DB::UInt8 atomicMax<DB::UInt8>(DB::UInt8 * address, DB::UInt8 val)
+inline __device__ UInt8 atomicMax<UInt8>(UInt8 * address, UInt8 val)
 {
     unsigned int * base_address = (unsigned int *)((size_t)address & ~3);
     unsigned int selectors[] = {0x3214, 0x3240, 0x3410, 0x4210};
@@ -108,14 +108,14 @@ inline __device__ DB::UInt8 atomicMax<DB::UInt8>(DB::UInt8 * address, DB::UInt8 
     do
     {
         assumed = old;
-        min_ = max(val, (DB::UInt8)__byte_perm(old, 0, ((size_t)address & 3) | 0x4440));
+        min_ = max(val, (UInt8)__byte_perm(old, 0, ((size_t)address & 3) | 0x4440));
         new_ = __byte_perm(old, min_, sel);
         if (new_ == old)
             break;
         old = atomicCAS(base_address, assumed, new_);
     } while (assumed != old);
 
-    return (DB::UInt8)__byte_perm(old, 0, ((size_t)address & 3) | 0x4440);
+    return (UInt8)__byte_perm(old, 0, ((size_t)address & 3) | 0x4440);
 }
 
 }

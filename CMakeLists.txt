@@ -67,21 +67,22 @@ if (ENABLE_CUDA)
     # CMake doesn't have any supported CUDA architectures for clang-13,
     #   so we need to make CMake think that we use clang-14 for CUDA files compilation,
     #   and after that change it to our main compiler
-    set (CUDA_ARCH 89)
-    set(CUDA_HOST_COMPILER clang++-20)
-    set(CMAKE_CUDA_COMPILER /usr/bin/clang++-20)
-    set (CUDA_INCLUDE "/mnt/data00/toolkit12/targets/x86_64-linux/include" "/mnt/data00/toolkit12/targets/x86_64-linux/include/cccl")
+    set (CUDA_ARCH 86)
+    set(CUDA_HOST_COMPILER   /opt/tiger/cpp_tools/x86_64_x86_64_clang_2020/bin/clang++)
+    set(CMAKE_CUDA_COMPILER  /opt/tiger/cpp_tools/x86_64_x86_64_clang_2020/bin/clang++)
+    set (CUDA_INCLUDE "/data00/heguangnan/toolkit12/targets/x86_64-linux/include" "/data00/heguangnan/toolkit12/targets/x86_64-linux/include/cccl")
     set (CMAKE_CUDA_ARCHITECTURES "${CUDA_ARCH}")
     set(CMAKE_CUDA_COMPILER_WORKS TRUE)
-    set(CMAKE_CUDA_STANDARD 20)
+    # set(CMAKE_CUDA_RUNTIME_LIBRARY Shared)
+    set(CMAKE_CUDA_STANDARD 23)
     set(CMAKE_CUDA_STANDARD_REQUIRED ON)
-    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --cuda-path=/mnt/data00/toolkit12 --no-cuda-version-check -O3")
-    set (CUDA_LIB "/mnt/data00/toolkit12/targets/x86_64-linux/lib")
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --cuda-path=/data00/heguangnan/toolkit12 --no-cuda-version-check -O3")
+    set (CUDA_LIB "/data00/heguangnan/toolkit12/targets/x86_64-linux/lib")
+    # add_compile_definitions(_LIBCUDACXX_HAS_NO_LIBCXX_INCLUDES)
     enable_language(CUDA)
 
     # TODO: Make it general
     link_directories("${CUDA_LIB}")
-    set (CMAKE_CUDA_STANDARD 20)
 endif ()
 
 include (cmake/arch.cmake)
@@ -468,6 +469,25 @@ if (WERROR)
     # TODO: Set CMAKE_COMPILE_WARNING_AS_ERROR (cmake 3.24)
     target_compile_options(global-group INTERFACE "-Werror")
 endif ()
+
+target_compile_options(global-group INTERFACE
+    "$<$<COMPILE_LANGUAGE:CUDA>:--no-cuda-version-check>"
+    "$<$<COMPILE_LANGUAGE:CUDA>:-Wno-unknown-cuda-version>"
+    "$<$<COMPILE_LANGUAGE:CUDA>:-Wno-vla-cxx-extension>"
+    # "$<$<COMPILE_LANGUAGE:CUDA>:-include>"
+        "$<$<COMPILE_LANGUAGE:CUDA>:SHELL:-include ${ClickHouse_SOURCE_DIR}/src/Common/CudaPlacementNew.h>"
+)
+
+
+target_compile_definitions(global-group INTERFACE
+    "$<$<COMPILE_LANGUAGE:CUDA>:__CORRECT_ISO_CPP_STRING_H_PROTO>"
+    # "$<$<COMPILE_LANGUAGE:CUDA>:SHELL:-include ${ClickHouse_SOURCE_DIR}/src/Common/CudaPlacementNew.h>"
+
+    #    "$<$<COMPILE_LANGUAGE:CXX>:-include new>"
+#    "$<$<COMPILE_LANGUAGE:CUDA>:-include new>"
+    # "$<$<COMPILE_LANGUAGE:CUDA>:-Wno-vla-cxx-extension>"
+)
+
 
 # Make this extra-checks for correct library dependencies.
 if (OS_LINUX AND NOT SANITIZE)

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <new>
 #include <boost/noncopyable.hpp>
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -18,9 +19,9 @@ using CudaStringsHashTablePtr = std::shared_ptr<CudaStringsHashTable>;
 class CudaStringsHashTable : private boost::noncopyable
 {
 public:
-    typedef DB::UInt32      SizeType;
-    typedef DB::UInt64      HashType;
-    typedef char*           Pointer;
+    using SizeType = UInt32;
+    using HashType = UInt64;
+    using Pointer = char*;
 
     CudaStringsHashTable(SizeType buckets_num_, SizeType str_buf_max_sz_/*, SizeType add_max_str_num_*/);
     void        erase(cudaStream_t stream = nullptr);

@@ -1,3 +1,9 @@
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE  // Must be at the absolute top
+#endif
+
+#include <dlfcn.h>
+
 #include <base/phdr_cache.h>
 #include <base/scope_guard.h>
 #include <base/defines.h>
@@ -16,6 +22,7 @@
 #include "config_tools.h"
 
 #include <unistd.h>
+#include <cuda_runtime.h>
 
 #include <filesystem>
 #include <iostream>
@@ -236,24 +243,42 @@ bool isClickhouseApp(std::string_view app_suffix, std::vector<char *> & argv)
 #if !defined(USE_MUSL)
 extern "C"
 {
-    void * dlopen(const char *, int)
+    void * dlopen(const char * name, int flags)
     {
+        // Use dlsym to find the REAL dlopen provided by the system (libc/libdl)
+        using PFdlopen = void*(*)(const char*, int);
+        static auto real_dlopen = reinterpret_cast<PFdlopen>(dlsym(RTLD_NEXT, "dlopen"));
+        if (real_dlopen)
+            return real_dlopen(name, flags);
         return nullptr;
     }
 
-    void * dlmopen(long, const char *, int) // NOLINT
+    void * dlmopen(long l, const char * name, int flags) // NOLINT
     {
+        using PFdlmopen = void*(*)(long, const char*, int);
+        static auto real_dlmopen = reinterpret_cast<PFdlmopen>(dlsym(RTLD_NEXT, "dlmopen"));
+        if (real_dlmopen)
+            return real_dlmopen(l, name, flags);
         return nullptr;
     }
 
-    int dlclose(void *)
+    int dlclose(void * handle)
     {
+        using PFdlclose = int(*)(void*);
+        static auto real_dlclose = reinterpret_cast<PFdlclose>(dlsym(RTLD_NEXT, "dlclose"));
+        if (real_dlclose)
+            return real_dlclose(handle);
         return 0;
     }
 
-    const char * dlerror()
+    // Allow dlerror so CUDA driver can check why loading failed
+    using PFdlerror = char*(*)();
+    char * dlerror()
     {
-        return "ClickHouse does not allow dynamic library loading";
+        static auto real_dlerror = reinterpret_cast<PFdlerror>(dlsym(RTLD_NEXT, "dlerror"));
+        if (real_dlerror)
+            return real_dlerror();
+        return const_cast<char*>("ClickHouse does not allow dynamic library loading");
     }
 }
 #endif
@@ -306,6 +331,18 @@ bool inside_main = false;
 
 int main(int argc_, char ** argv_)
 {
+#if USE_CUDA
+    std::cerr << "\n========== [VERY EARLY CUDA PROBE (main)] ==========\n";
+    int early_device_count = 0;
+    cudaError_t early_err = cudaGetDeviceCount(&early_device_count);
+    if (early_err != cudaSuccess) {
+        std::cerr << "Early CUDA init failed: " << cudaGetErrorString(early_err) << "\n";
+    } else {
+        std::cerr << "Early CUDA init SUCCESS! Devices found: " << early_device_count << "\n";
+    }
+    std::cerr << "====================================================\n\n";
+#endif
+
     inside_main = true;
     SCOPE_EXIT({ inside_main = false; });
 

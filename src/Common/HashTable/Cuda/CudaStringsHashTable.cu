@@ -1,4 +1,5 @@
 #include <stdexcept>
+#include <new>
 #include <cub/cub.cuh>
 
 #include <Common/Cuda/cudaMurmurHash64.cuh>
@@ -143,11 +144,11 @@ __global__ void kerAddData(
             const char * data_next = ptr;
             const char * end_next = data_next + len;
             bool is_first_read = true, is_first_read_next = true;
-            DB::UInt64 tmp_buf, tmp_buf_next;
+            UInt64 tmp_buf, tmp_buf_next;
 
             while (data != end)
             {
-                DB::UInt64 v = cudaReadStringUnaligned64(is_first_read, tmp_buf, data, end),
+                UInt64 v = cudaReadStringUnaligned64(is_first_read, tmp_buf, data, end),
                            v_next = cudaReadStringUnaligned64(is_first_read_next, tmp_buf_next, data_next, end_next);
                 if (v != v_next)
                     hit = false; //ISSUE break?
@@ -202,8 +203,8 @@ __global__ void kerCopyAddedStrings(
         const char * data = &(buf[offset]);
         const char * end = data + len;
         bool is_first_read = true;
-        DB::UInt64 tmp_buf;
-        DB::UInt64 * data_res = (DB::UInt64 *)&(hash_table_str_buf[hash_table_offset]);
+        UInt64 tmp_buf;
+        UInt64 * data_res = (UInt64 *)&(hash_table_str_buf[hash_table_offset]);
 
         while (data != end)
         {

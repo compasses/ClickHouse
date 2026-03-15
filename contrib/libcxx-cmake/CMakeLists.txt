@@ -71,7 +71,8 @@ add_custom_target(generate-cxx-headers ALL DEPENDS ${_all_includes})
 
 add_library(cxx-headers INTERFACE)
 add_dependencies(cxx-headers generate-cxx-headers)
-target_include_directories(cxx-headers INTERFACE ${LIBCXX_GENERATED_INCLUDE_DIR} ${LIBC_DIR})
+target_include_directories(cxx-headers SYSTEM INTERFACE ${LIBCXX_GENERATED_INCLUDE_DIR} ${LIBC_DIR})
+
 
 add_library(cxx ${SRCS})
 set_target_properties(cxx PROPERTIES FOLDER "contrib/libcxx-cmake")
@@ -79,7 +80,10 @@ set_target_properties(cxx PROPERTIES FOLDER "contrib/libcxx-cmake")
 set(LIBC_NAMESPACE "__llvm_libc")
 
 target_include_directories(cxx SYSTEM BEFORE PRIVATE $<BUILD_INTERFACE:${LIBCXX_SOURCE_DIR}/src>)
-target_include_directories(cxx SYSTEM BEFORE PUBLIC  $<$<COMPILE_LANGUAGE:CXX>:$<BUILD_INTERFACE:${LIBCXX_SOURCE_DIR}/include>>)
+
+# target_include_directories(cxx SYSTEM BEFORE PUBLIC  $<$<COMPILE_LANGUAGE:CXX>:$<BUILD_INTERFACE:${LIBCXX_SOURCE_DIR}/include>>)
+
+target_include_directories(cxx SYSTEM BEFORE PUBLIC  $<$<OR:$<COMPILE_LANGUAGE:CXX>,$<COMPILE_LANGUAGE:CUDA>>:$<BUILD_INTERFACE:${LIBCXX_SOURCE_DIR}/include>>)
 target_compile_definitions(cxx PRIVATE -D_LIBCPP_BUILDING_LIBRARY -DLIBCXX_BUILDING_LIBCXXABI -DLIBC_NAMESPACE=${LIBC_NAMESPACE})
 target_compile_definitions(cxx PUBLIC -D_LIBCPP_REMOVE_TRANSITIVE_INCLUDES=1)
 
@@ -95,7 +99,12 @@ if (OS_DARWIN AND COMPILER_GCC)
     add_compile_definitions(_LIBCPP_INIT_PRIORITY_MAX)
 endif ()
 
-target_compile_options(cxx PUBLIC $<$<COMPILE_LANGUAGE:CUDA,CXX>:-nostdinc++>)
+target_compile_options(cxx PUBLIC $<$<OR:$<COMPILE_LANGUAGE:CXX>,$<COMPILE_LANGUAGE:CUDA>>:-nostdinc++>)
+target_compile_options(cxx PUBLIC
+    $<$<COMPILE_LANGUAGE:CUDA>:-idirafter>
+    $<$<COMPILE_LANGUAGE:CUDA>:$<BUILD_INTERFACE:${LIBCXX_SOURCE_DIR}/include>>
+)
+
 
 # Third party library may have substandard code.
 target_compile_options(cxx PRIVATE -w)
