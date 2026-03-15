@@ -390,7 +390,7 @@ public:
 #if USE_CUDA
     virtual const CudaAggregateFunctionPtr  createCudaFunction() const
     {
-        throw Exception("IAggregateFunction::createCudaFunction: aggregate function is not supported", ErrorCodes::CUDA_UNSUPPORTED_AGGREGATE_FUNCTION);
+        throw Exception(ErrorCodes::CUDA_UNSUPPORTED_AGGREGATE_FUNCTION, "IAggregateFunction::createCudaFunction: aggregate function is not supported");
         return nullptr;
     }
 #endif

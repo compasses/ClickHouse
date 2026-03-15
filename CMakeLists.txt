@@ -73,17 +73,15 @@ if (ENABLE_CUDA)
     set (CUDA_INCLUDE "/mnt/data00/toolkit12/targets/x86_64-linux/include" "/mnt/data00/toolkit12/targets/x86_64-linux/include/cccl")
     set (CMAKE_CUDA_ARCHITECTURES "${CUDA_ARCH}")
     set(CMAKE_CUDA_COMPILER_WORKS TRUE)
-    set(CMAKE_CUDA_STANDARD 17)
+    set(CMAKE_CUDA_STANDARD 20)
     set(CMAKE_CUDA_STANDARD_REQUIRED ON)
-    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --cuda-path=/mnt/data00/toolkit12")
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --cuda-path=/mnt/data00/toolkit12 --no-cuda-version-check -O3")
+    set (CUDA_LIB "/mnt/data00/toolkit12/targets/x86_64-linux/lib")
     enable_language(CUDA)
 
-    # set (CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --no-cuda-version-check -O3 -v")
-
     # TODO: Make it general
-    link_directories(/usr/local/cuda/targets/x86_64-linux/lib)
-    set (CMAKE_CUDA_STANDARD 17)
-    set (CMAKE_CUDA_ARCHITECTURES 52)
+    link_directories("${CUDA_LIB}")
+    set (CMAKE_CUDA_STANDARD 20)
 endif ()
 
 include (cmake/arch.cmake)

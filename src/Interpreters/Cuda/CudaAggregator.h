@@ -5,8 +5,9 @@
 #include <mutex>
 
 #include <Common/logger_useful.h>
+#include <Core/Settings.h>
 
-#include <base/StringRef.h>
+// #include <base/StringRef.h>
 #include <Common/Arena.h>
 #include <Common/HashTable/FixedHashMap.h>
 #include <Common/HashTable/HashMap.h>
@@ -48,6 +49,16 @@
 namespace DB
 {
 
+namespace Setting
+{
+    extern const SettingsUInt64 cuda_device_number;
+    extern const SettingsUInt64 cuda_chunks_number;
+    extern const SettingsUInt64 cuda_hash_table_max_size;
+    extern const SettingsUInt64 cuda_hash_table_strings_buffer_max_size;
+    extern const SettingsUInt64 cuda_buffer_max_strings_number;
+    extern const SettingsUInt64 cuda_buffer_max_size;
+}
+
 struct CudaAggregatedDataVariants : private boost::noncopyable
 {
     bool empty_ = true;
@@ -78,12 +89,12 @@ struct CudaAggregatedDataVariants : private boost::noncopyable
         const Settings & settings = context->getSettingsRef();
         /// There are no variants for now
         strings_agg = std::make_unique<decltype(strings_agg)::element_type>(
-            settings.cuda_device_number,
-            settings.cuda_chunks_number,
-            settings.cuda_hash_table_max_size,
-            settings.cuda_hash_table_strings_buffer_max_size,
-            settings.cuda_buffer_max_strings_number,
-            settings.cuda_buffer_max_size,
+            settings[Setting::cuda_device_number],
+            settings[Setting::cuda_chunks_number],
+            settings[Setting::cuda_hash_table_max_size],
+            settings[Setting::cuda_hash_table_strings_buffer_max_size],
+            settings[Setting::cuda_buffer_max_strings_number],
+            settings[Setting::cuda_buffer_max_size],
             cuda_agg_function);
         empty_ = false;
     }

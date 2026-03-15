@@ -211,6 +211,7 @@ namespace Setting
     extern const SettingsBool enable_producing_buckets_out_of_order_in_aggregation;
     extern const SettingsBool enable_lazy_columns_replication;
     extern const SettingsBool serialize_string_in_memory_with_zero_byte;
+    extern const SettingsBool use_cuda_aggregation;
 }
 
 namespace ServerSetting
@@ -2959,20 +2960,22 @@ void InterpreterSelectQuery::executeAggregation(
     
     QueryPlanStepPtr aggregating_step;
 #if USE_CUDA
-    if (settings.use_cuda_aggregation)
+    if (settings[Setting::use_cuda_aggregation])
         aggregating_step = std::make_unique<CudaAggregatingStep>(
-            query_plan.getCurrentDataStream(),
+            query_plan.getCurrentHeader(),
             std::move(aggregator_params),
             std::move(grouping_sets_params),
             final,
-            settings.max_block_size,
-            settings.aggregation_in_order_max_block_bytes,
+            settings[Setting::max_block_size],
+            settings[Setting::aggregation_in_order_max_block_bytes],
             merge_threads,
             temporary_data_merge_threads,
-            storage_has_evenly_distributed_read,
-            std::move(group_by_info),
+            settings[Setting::group_by_use_nulls],
+            std::move(sort_description_for_merging),
             std::move(group_by_sort_description),
             should_produce_results_in_order_of_bucket_number,
+            settings[Setting::enable_memory_bound_merging_of_aggregation_results],
+            !group_by_info && settings[Setting::force_aggregation_in_order],
             context);
 #endif
 

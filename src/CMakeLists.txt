@@ -382,8 +382,43 @@ add_library (dbms STATIC ${dbms_headers} ${dbms_sources})
 
 if (ENABLE_CUDA)
     add_library(dbms_cuda STATIC ${dbms_cuda_headers} ${dbms_cuda_sources})
+    target_link_options(dbms_cuda PRIVATE -stdlib=libc++)
+    target_compile_options(dbms_cuda PRIVATE
+            $<$<COMPILE_LANGUAGE:CUDA>:--cuda-path=/mnt/data00/toolkit12>
+        )
     target_link_libraries (dbms PRIVATE dbms_cuda)
-    target_include_directories(dbms_cuda SYSTEM PUBLIC ${CUDA_INCLUDE})
+    # target_link_libraries (dbms_cuda PRIVATE
+    #     boost::filesystem
+    #     boost::program_options
+    #     clickhouse_common_config
+    #     clickhouse_common_zookeeper_base
+    #     clickhouse_common_zookeeper
+    #     clickhouse_dictionaries_embedded
+    #     clickhouse_parsers
+    #     ch_contrib::lz4
+    #     Poco::JSON
+    #     boost::system
+    #     clickhouse_compression
+    #     clickhouse_common_io
+    #     Poco::Redis
+    #     Poco::Util
+    # )
+    target_include_directories(dbms_cuda SYSTEM PUBLIC "${CUDA_INCLUDE}")
+    # target_include_directories(dbms_cuda PUBLIC "${ClickHouse_SOURCE_DIR}/src" "${ClickHouse_BINARY_DIR}/src")
+    # target_include_directories(dbms_cuda SYSTEM PUBLIC ${CUDA_INCLUDE})
+    # target_include_directories(dbms_cuda SYSTEM PRIVATE
+    #     ${ClickHouse_SOURCE_DIR}/contrib/llvm-project/libcxx/include
+    #     ${ClickHouse_SOURCE_DIR}/contrib/llvm-project/libcxxabi/include
+    #     ${ClickHouse_SOURCE_DIR}/contrib/llvm-project/libunwind/include
+    #     ${ClickHouse_BINARY_DIR}/contrib/llvm-project/libcxx/include/c++/v1
+    # )
+    target_compile_definitions(dbms_cuda PRIVATE _ALLOW_UNSUPPORTED_LIBCPP)
+
+    target_compile_options(dbms_cuda PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--no-cuda-version-check -O3 -Wno-unknown-cuda-version>)
+    # target_compile_definitions(dbms_cuda PRIVATE
+    #     __CORRECT_ISO_CPP_STRING_H_PROTO
+    #     $<$<COMPILE_LANGUAGE:CUDA>:_ALLOW_UNSUPPORTED_LIBCPP>
+    # )
 endif ()
 
 target_link_libraries (dbms PRIVATE ch_contrib::libdivide daemon)

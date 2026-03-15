@@ -3,8 +3,7 @@
 #include <numeric>
 #include <Poco/Util/Application.h>
 
-#include <AggregateFunctions/AggregateFunctionArray.h>
-#include <AggregateFunctions/AggregateFunctionState.h>
+// #include <AggregateFunctions/AggregateFunctionState.h>
 #include <Columns/ColumnArray.h>
 #include <Columns/ColumnSparse.h>
 #include <Columns/ColumnTuple.h>
@@ -22,7 +21,7 @@
 #include <base/sort.h>
 #include <Common/CurrentThread.h>
 #include <Common/JSONBuilder.h>
-#include <Common/LRUCache.h>
+// #include <Common/LRUCache.h>
 #include <Common/MemoryTracker.h>
 #include <Common/Stopwatch.h>
 #include <Common/assert_cast.h>
@@ -70,31 +69,31 @@ CudaAggregator::CudaAggregator(ContextPtr context_, const Block & header_, const
     /// Here we cut off unsupported cases
 
     if (params.keys_size != 1)
-        throw Exception("CudaAggregator: params.keys_size is not equal 1", ErrorCodes::CUDA_UNSUPPORTED_CASE);
+        throw Exception(ErrorCodes::CUDA_UNSUPPORTED_CASE, "CudaAggregator: params.keys_size is not equal 1");
     if (params.aggregates_size != 1)
-        throw Exception("CudaAggregator: params.aggregates_size is not equal 1", ErrorCodes::CUDA_UNSUPPORTED_CASE);
+        throw Exception(ErrorCodes::CUDA_UNSUPPORTED_CASE, "CudaAggregator: params.aggregates_size is not equal 1");
 
     const auto & key_name = params.keys[0];
     const auto & key_type = header.getByName(key_name).type;
 
     if (WhichDataType(key_type).isNullable())
-        throw Exception("CudaAggregator: have no idea what is nullable key", ErrorCodes::CUDA_UNSUPPORTED_CASE);
+        throw Exception(ErrorCodes::CUDA_UNSUPPORTED_CASE, "CudaAggregator: have no idea what is nullable key");
     if (!WhichDataType(key_type).isString())
-        throw Exception("CudaAggregator: key is not String", ErrorCodes::CUDA_UNSUPPORTED_CASE);
+        throw Exception(ErrorCodes::CUDA_UNSUPPORTED_CASE, "CudaAggregator: key is not String");
 
     /// Throws an exception if function CUDA version is not implemented
     cuda_agg_function = params.aggregates[0].function->createCudaFunction();
 
     if (params.aggregates[0].argument_names.size() != 1)
-        throw Exception("CudaAggregator: arguments number of function is not equal 1", ErrorCodes::CUDA_UNSUPPORTED_CASE);
+        throw Exception(ErrorCodes::CUDA_UNSUPPORTED_CASE, "CudaAggregator: arguments number of function is not equal 1");
 
     const auto & arg_name = params.aggregates[0].argument_names[0];
     const auto & arg_type = header.getByName(arg_name).type;
 
     if (WhichDataType(arg_type).isNullable())
-        throw Exception("CudaAggregator: have no idea what is nullable argument", ErrorCodes::CUDA_UNSUPPORTED_CASE);
+        throw Exception(ErrorCodes::CUDA_UNSUPPORTED_CASE, "CudaAggregator: have no idea what is nullable argument");
     if (!WhichDataType(arg_type).isString())
-        throw Exception("CudaAggregator: argument is not String", ErrorCodes::CUDA_UNSUPPORTED_CASE);
+        throw Exception(ErrorCodes::CUDA_UNSUPPORTED_CASE, "CudaAggregator: argument is not String");
 }
 
 
@@ -196,7 +195,7 @@ Block CudaAggregator::prepareBlockAndFill(CudaAggregatedDataVariants & /*data_va
 
     for (size_t i = 0; i < params.aggregates_size; ++i)
     {
-        final_aggregate_columns[i] = params.aggregates[i].function->getReturnType()->createColumn();
+        final_aggregate_columns[i] = params.aggregates[i].function->getResultType()->createColumn();
         final_aggregate_columns[i]->reserve(rows);
     }
 

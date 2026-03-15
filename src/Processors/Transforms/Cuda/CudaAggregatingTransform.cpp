@@ -146,8 +146,8 @@ private:
     void setCurrentChunk(Chunk chunk)
     {
         if (has_input)
-            throw Exception("Current chunk was already set in "
-                            "CudaConvertingAggregatedToChunksTransform.", ErrorCodes::LOGICAL_ERROR);
+            throw Exception(ErrorCodes::LOGICAL_ERROR, "Current chunk was already set in "
+                        "CudaConvertingAggregatedToChunksTransform.");
 
         has_input = true;
         current_chunk = std::move(chunk);

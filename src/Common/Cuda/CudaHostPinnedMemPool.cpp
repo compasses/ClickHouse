@@ -79,7 +79,7 @@ void * CudaHostPinnedMemPool::alloc(std::size_t size, std::size_t alignment)
     const std::size_t headerAddress = reinterpret_cast<std::size_t>(affectedNode) + alignmentPadding;
     const std::size_t dataAddress = headerAddress + allocationHeaderSize;
     (reinterpret_cast<CudaHostPinnedMemPool::AllocationHeader *>(headerAddress))->blockSize = requiredSize;
-    (reinterpret_cast<CudaHostPinnedMemPool::AllocationHeader *>(headerAddress))->padding = alignmentPadding;
+    (reinterpret_cast<CudaHostPinnedMemPool::AllocationHeader *>(headerAddress))->padding = static_cast<char>(alignmentPadding);
 
     m_used += requiredSize;
     m_peak = std::max(m_peak, m_used);
